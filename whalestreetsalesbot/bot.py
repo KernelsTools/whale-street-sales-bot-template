@@ -29,6 +29,7 @@ from x_client import XClient, XError
 log = logging.getLogger("salesbot")
 
 OUT_DIR = Path("out")  # where dry runs save images
+HEARTBEAT_SECONDS = 3600
 
 
 class State:
@@ -68,6 +69,7 @@ class Bot:
         elif not settings.dry_run:
             raise SystemExit("DRY_RUN is false but the X_API_KEY / X_ACCESS_TOKEN values in .env are not all set")
         self._last_post = 0.0
+        self.handled = 0  # sales posted or skipped since start, for the heartbeat log
 
     def announce(self, sale: Sale) -> None:
         price, symbol, usd = self.pricer.describe(sale.payment_token, sale.amount)
@@ -118,6 +120,7 @@ class Bot:
             log.warning("X says #%s was already posted; skipping", sale.token_id)
         state.mark(sale.id)
         state.save()
+        self.handled += 1
 
     def catch_up(self, state: State) -> None:
         head = self.rpc.block_number() - self.s.confirmations
@@ -138,10 +141,16 @@ class Bot:
         log.info("Watching %s from block %d%s", self.s.contract, state.last_block + 1,
                  " (DRY RUN: nothing will be posted)" if self.s.dry_run else "")
         errors = 0
+        last_heartbeat = time.time()
         while True:
             try:
                 self.catch_up(state)
                 errors = 0
+                # A sign of life in the logs, so a quiet stretch with no sales doesn't look like a hang.
+                if time.time() - last_heartbeat >= HEARTBEAT_SECONDS:
+                    log.info("Heartbeat: scanned up to block %d, %d sales handled since start",
+                             state.last_block, self.handled)
+                    last_heartbeat = time.time()
             except Exception as e:
                 # Nothing is skipped: the scan resumes from the last finished block.
                 errors += 1
