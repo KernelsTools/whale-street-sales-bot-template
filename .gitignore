@@ -1,0 +1,25 @@
+# Secrets: never commit. Each bot folder keeps its own .env (see .env.example).
+.env
+.env.*
+!.env.example
+.x_auth_pending
+
+# Bot runtime files
+state.json
+state.tmp
+out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Private deployment values (real IDs/IPs for the placeholders in the docs)
+*.local.md

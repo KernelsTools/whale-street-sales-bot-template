@@ -7,6 +7,11 @@ services:
       - bot-data:/data
       # Edit tweet_template.txt on the host and the bot uses it from its next post.
       - ./tweet_template.txt:/app/tweet_template.txt:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   bot-data:

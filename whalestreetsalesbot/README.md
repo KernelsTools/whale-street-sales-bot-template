@@ -14,6 +14,9 @@ Posts every sale of [Whales of WhaleStreet](https://opensea.io/collection/whales
 It reads sales straight from the blockchain, so it needs no OpenSea API key. It catches
 listings bought with ETH or USDG, accepted WETH offers, and sweeps.
 
+> **Our deployment:** live on Google Cloud, posting as @WhaleStreetBuy. Status, runbook and log guide:
+> [`deployment-plan.md`](deployment-plan.md). Change history: [`deployment-log.md`](deployment-log.md).
+
 ## 1. Set up (once)
 
 Needs [Docker](https://docs.docker.com/get-docker/).
@@ -51,6 +54,16 @@ docker compose up                                     # watch for new sales (Ctr
 
    Generate the Access Token **after** switching to "Read and write". A token made earlier is
    read-only and posting fails with a 403.
+   **If the developer app belongs to a different account than the bot** (ours: app owned by KernelsTools,
+   posting as @WhaleStreetBuy), skip the portal's Access Token: it belongs to the app owner. Put only the API Key
+   and Secret in `.env`, then get the bot account's token with X's PIN login:
+   ```bash
+   docker compose run --rm -v "$PWD:/work" -w /work bot python authorize.py         # prints a link
+   # open the link logged in as the BOT account, click Authorize, note the PIN
+   docker compose run --rm -v "$PWD:/work" -w /work bot python authorize.py <PIN>   # saves the token to .env
+   ```
+   The app needs a Callback URL set (any, e.g. `http://localhost`), even for the PIN login.
+   Confused by the different keys? See [`x-api-credentials.md`](x-api-credentials.md).
 5. Run `docker compose run --rm bot python bot.py --check`. It should say `X: authenticated as @YourBot`.
 6. Set `DRY_RUN=false` and start the bot (step 4).
 
@@ -104,8 +117,12 @@ folder's `Dockerfile`, then:
 | `prices.py` | ETH/USD price (Coinbase) and token decimals |
 | `tweet.py` | Fills in the post template (`tweet_template.txt`) |
 | `x_client.py` | X API: image upload + post |
+| `authorize.py` | One-time X PIN login to get the bot account's access token |
 | `config.py` | Settings and Robinhood Chain addresses (WETH, USDG, Seaport) |
 | `Dockerfile`, `docker-compose.yml` | Container build and run setup |
+| `.env.example` | Template for `.env` (copy it and fill in the X keys) |
+| `deployment-plan.md`, `deployment-log.md` | Our deployment: status, runbook, log guide, change history |
+| `x-api-credentials.md` | Which X key is which, and how to post from an account that doesn't own the app |
 
 Tests run on real Robinhood Chain transactions saved in `tests/fixtures`
 (Python 3.9+, after `pip install -r requirements.txt`):
